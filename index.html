@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Muuttaa — 広告トラッカー</title>
+<style>
+  :root{
+    --paper:#f7f6f1; --card:#fffefb; --ink:#23231e; --sub:#6e6c61; --faint:#a3a094;
+    --line:#e4e2d7; --warm:#efede4;
+    --gold:#a8823c; --gold-bg:#f3ecdd;
+    --green:#3f7352; --green-bg:#e6f0ea;
+    --blue:#54709f;  --blue-bg:#e8edf5;
+    --red:#b04a46;   --red-bg:#f7e8e7;
+    --amber:#9a6b1f; --amber-bg:#f6eeda;
+    --shadow:0 1px 3px rgba(35,35,30,.06);
+    --jp:"Yu Gothic UI","Hiragino Sans","Meiryo",system-ui,sans-serif;
+    --num:"Segoe UI",system-ui,sans-serif;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --paper:#1a1915; --card:#232219; --ink:#ebe8dd; --sub:#a5a294; --faint:#757264;
+      --line:#37352a; --warm:#2b2a20;
+      --gold:#c9a45e; --gold-bg:#332c1d;
+      --green:#7bb392; --green-bg:#243428;
+      --blue:#8ba3cc;  --blue-bg:#252c3a;
+      --red:#d18783;   --red-bg:#3a2624;
+      --amber:#cfa554; --amber-bg:#342d1c;
+      --shadow:0 1px 3px rgba(0,0,0,.3);
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--jp);font-size:14px;line-height:1.6}
+
+  /* ─── ヘッダー ─── */
+  header{position:sticky;top:0;z-index:50;background:var(--paper);border-bottom:1px solid var(--line)}
+  .hwrap{max-width:960px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .logo{font-family:Georgia,serif;font-size:19px;letter-spacing:.08em}
+  .logo small{display:block;font-family:var(--jp);font-size:10px;color:var(--faint);letter-spacing:.12em}
+  nav{display:flex;gap:2px;margin-left:auto;background:var(--warm);border:1px solid var(--line);border-radius:8px;padding:3px}
+  .nbtn{font-family:var(--jp);font-size:13px;padding:7px 16px;border:none;border-radius:6px;background:none;color:var(--sub);cursor:pointer;position:relative}
+  .nbtn:hover{color:var(--ink)}
+  .nbtn:focus-visible,.gear:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+  .nbtn.active{background:var(--card);color:var(--ink);box-shadow:var(--shadow);font-weight:600}
+  .nbtn .dot{position:absolute;top:5px;right:7px;width:6px;height:6px;border-radius:99px;background:var(--red);display:none}
+  .nbtn .dot.on{display:block}
+  .gear{margin-left:6px;background:none;border:1px solid var(--line);border-radius:8px;padding:7px 11px;color:var(--sub);cursor:pointer;font-size:13px;font-family:var(--jp)}
+  .gear:hover{color:var(--ink);border-color:var(--sub)}
+  .gear.warn{color:var(--red);border-color:var(--red)}
+  .gear.active{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+
+  main{max-width:960px;margin:0 auto;padding:24px 20px 130px}
+  .sec{display:none}
+  .sec.visible{display:block}
+  h1{font-size:20px;font-weight:600;margin-bottom:2px}
+  .sub{font-size:12.5px;color:var(--sub);margin-bottom:20px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
+
+  /* ─── 今日 ─── */
+  .todo{display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
+  .titem{display:flex;align-items:center;gap:14px;padding:16px 18px;cursor:pointer;transition:border-color .15s}
+  .titem:hover{border-color:var(--sub)}
+  .tcheck{width:26px;height:26px;border-radius:99px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+  .done .tcheck{background:var(--green-bg);color:var(--green)}
+  .pending .tcheck{background:var(--amber-bg);color:var(--amber)}
+  .ttext b{font-size:14.5px;display:block}
+  .ttext span{font-size:12px;color:var(--sub)}
+  .tgo{margin-left:auto;font-size:12.5px;color:var(--gold);font-weight:600;white-space:nowrap}
+  .done .tgo{color:var(--faint);font-weight:400}
+
+  .quick{padding:18px;margin-bottom:22px}
+  .quick h2{font-size:13px;color:var(--sub);font-weight:600;margin-bottom:12px}
+  .qrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .qrow input[type=date]{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13px;font-family:var(--num);color:var(--ink);outline:none}
+  .qrow input[type=number]{flex:1;min-width:130px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:11px 14px;font-size:16px;font-family:var(--num);color:var(--ink);outline:none;font-variant-numeric:tabular-nums}
+  .qrow input:focus{border-color:var(--gold)}
+  .qdiff{font-family:var(--num);font-size:14px;font-weight:600;min-width:64px;font-variant-numeric:tabular-nums;color:var(--faint)}
+  .qwarn{font-size:11.5px;color:var(--amber);margin-top:8px;display:none}
+  .qwarn.show{display:block}
+  .btn{font-family:var(--jp);font-size:13.5px;font-weight:600;padding:11px 22px;border-radius:8px;border:none;cursor:pointer;background:var(--ink);color:var(--paper)}
+  .btn:hover{opacity:.85}
+  .btn.ghost{background:none;border:1px solid var(--line);color:var(--ink);font-weight:400}
+
+  .glance{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .gcard{padding:16px 18px}
+  .glabel{font-size:11.5px;color:var(--sub);margin-bottom:4px}
+  .gval{font-family:var(--num);font-size:26px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+  .gdelta{font-size:12px;margin-top:2px;font-variant-numeric:tabular-nums;color:var(--faint)}
+  .up{color:var(--green)} .downc{color:var(--red)} .flat{color:var(--faint)}
+
+  /* ─── 入力 ─── */
+  .editbar{display:none;align-items:center;gap:12px;background:var(--blue-bg);border:1px solid var(--blue);border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px}
+  .editbar.on{display:flex}
+  .editbar b{color:var(--blue)}
+  .editbar button{margin-left:auto;background:none;border:1px solid var(--blue);border-radius:7px;color:var(--blue);padding:5px 14px;cursor:pointer;font-family:var(--jp);font-size:12px}
+  .form{padding:22px;margin-bottom:20px}
+  .frow{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .field label{display:block;font-size:12px;color:var(--sub);margin-bottom:5px;font-weight:600}
+  .field input,.field select{width:100%;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14.5px;font-family:var(--jp);color:var(--ink);outline:none}
+  .field input:focus,.field select:focus{border-color:var(--gold)}
+  .previnfo{font-size:12px;color:var(--sub);margin:2px 0 14px}
+  .previnfo b{color:var(--ink)}
+  .type-switcher{display:flex;gap:8px;margin-bottom:18px}
+  .type-btn{flex:1;font-family:var(--jp);font-size:13px;padding:12px;border-radius:8px;cursor:pointer;transition:all .15s;border:2px solid var(--line);background:none;color:var(--sub);text-align:center}
+  .type-btn small{display:block;font-size:10.5px;opacity:.75}
+  .type-btn:hover{border-color:var(--faint);color:var(--ink)}
+  .type-btn.sel-follow{border-color:var(--green);background:var(--green-bg);color:var(--green);font-weight:600}
+  .type-btn.sel-web{border-color:var(--blue);background:var(--blue-bg);color:var(--blue);font-weight:600}
+  .numline{display:grid;grid-template-columns:160px 1fr 110px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+  .numline:last-child{border-bottom:none}
+  .nlabel{font-size:13px;color:var(--ink)}
+  .nlabel small{display:block;font-size:10.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+  .numline input{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:15px;font-family:var(--num);color:var(--ink);outline:none;text-align:right;font-variant-numeric:tabular-nums;width:100%}
+  .numline input:focus{border-color:var(--gold)}
+  .ndiff{font-family:var(--num);font-size:13.5px;text-align:right;color:var(--gold);font-weight:600;font-variant-numeric:tabular-nums}
+  .ndiff small{display:block;font-size:10px;color:var(--faint);font-weight:400}
+  .ndiff.reset{color:var(--amber)}
+  .web-only{display:none}
+  .web-only.show{display:block}
+  .slbl{font-size:12px;color:var(--sub);font-weight:600;margin:16px 0 4px}
+
+  .stickybar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.06);display:none;z-index:40}
+  .stickybar.on{display:block}
+  .sbwrap{max-width:960px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  .sbkpi{font-size:12px;color:var(--sub);white-space:nowrap}
+  .sbkpi b{font-family:var(--num);font-size:16px;color:var(--ink);margin-left:4px;font-variant-numeric:tabular-nums}
+  .sbkpi.hero b{color:var(--gold)}
+  .sbwrap .btn{margin-left:auto}
+  .sbwrap .btn.ghost{margin-left:auto}
+  .sbwrap .btn:last-child{margin-left:0}
+
+  /* ─── 分析 ─── */
+  .kpirow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+  .hcard{padding:18px 20px}
+  .hval{font-family:var(--num);font-size:34px;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.15}
+  .hval .unit{font-size:18px}
+  .chartcard{padding:20px;margin-bottom:20px}
+  .chips{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
+  .chip{font-size:12.5px;padding:6px 14px;border-radius:99px;border:1px solid var(--line);background:none;color:var(--sub);cursor:pointer;font-family:var(--jp)}
+  .chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink);font-weight:600}
+  .chip-sep{width:1px;height:20px;background:var(--line);margin:0 4px}
+  .cr-select{font-size:12.5px;padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font-family:var(--jp);display:none;outline:none}
+  .cr-select.show{display:inline-block}
+  .chartwrap{margin-top:12px}
+
+  .ctable{width:100%;border-collapse:collapse}
+  .ctable th{font-size:11.5px;color:var(--sub);text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);font-weight:600;white-space:nowrap}
+  .ctable td{padding:12px 14px;border-bottom:1px solid var(--line);font-size:13.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .ctable tbody tr:last-child td{border-bottom:none}
+  .ctable td.num,.ctable th.num{font-family:var(--num);text-align:right}
+  .tname{font-family:var(--jp);max-width:210px;overflow:hidden;text-overflow:ellipsis}
+  .pill{display:inline-block;font-size:11.5px;padding:3px 10px;border-radius:99px;font-weight:600}
+  .pill.good{background:var(--green-bg);color:var(--green)}
+  .pill.norm{background:var(--amber-bg);color:var(--amber)}
+  .pill.bad{background:var(--red-bg);color:var(--red)}
+  .pill.mut{background:var(--warm);color:var(--faint)}
+  .tbadge{display:inline-block;font-size:11px;padding:2px 9px;border-radius:99px}
+  .tbadge.f{background:var(--green-bg);color:var(--green)}
+  .tbadge.w{background:var(--blue-bg);color:var(--blue)}
+  .ttag{display:inline-block;font-size:10px;padding:1px 7px;border-radius:99px;background:var(--warm);color:var(--faint)}
+  .ttag.warn{background:var(--amber-bg);color:var(--amber)}
+  .empty{padding:44px;text-align:center;color:var(--faint);font-size:13px}
+
+  /* ─── 履歴 ─── */
+  .toolbar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .ltab{font-size:13px;padding:7px 14px;border:none;background:none;color:var(--sub);cursor:pointer;border-radius:7px;font-family:var(--jp)}
+  .ltab.active{background:var(--warm);color:var(--ink);font-weight:600}
+  .tright{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .fsel{font-size:12.5px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);outline:none;font-family:var(--jp)}
+  .mini{font-size:12px;padding:6px 14px;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;font-family:var(--jp)}
+  .mini:hover{border-color:var(--sub)}
+  .mini.danger{color:var(--red);border-color:var(--red-bg)}
+  .mini.danger:hover{border-color:var(--red)}
+  .lrow{cursor:pointer}
+  .lrow:hover td{background:var(--warm)}
+  .ldetail{display:none}
+  .ldetail.open{display:table-row}
+  .ldetail td{background:var(--warm);padding:16px 18px;white-space:normal}
+  .dgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 22px;margin-bottom:12px}
+  .dgrid div{font-size:12px;color:var(--sub)}
+  .dgrid b{display:block;font-family:var(--num);font-size:14.5px;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+  .dgrid b.jp{font-family:var(--jp);font-weight:400}
+  .dact{display:flex;gap:8px;flex-wrap:wrap}
+  .caret{color:var(--faint);font-size:11px}
+
+  /* ─── 設定 ─── */
+  .settings{padding:22px;max-width:600px}
+  .srow{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--line)}
+  .srow:last-child{border-bottom:none}
+  .srow .grow{flex:1}
+  .srow b{font-size:13.5px;display:block}
+  .srow span{font-size:12px;color:var(--sub)}
+  .srow span.warn{color:var(--red)}
+  .danger-zone{margin-top:20px;border:1px solid var(--red-bg);border-radius:10px;padding:16px 18px;max-width:600px}
+  .danger-zone h3{font-size:13px;color:var(--red);margin-bottom:4px}
+
+  .toast{position:fixed;bottom:90px;right:24px;background:var(--ink);color:var(--paper);font-size:13px;padding:12px 18px;border-radius:8px;opacity:0;transform:translateY(6px);transition:all .2s;pointer-events:none;z-index:999}
+  .toast.show{opacity:1;transform:translateY(0)}
+
+  @media(max-width:640px){
+    .glance,.kpirow{grid-template-columns:1fr}
+    .frow{grid-template-columns:1fr}
+    .numline{grid-template-columns:104px 1fr 86px}
+    .dgrid{grid-template-columns:repeat(2,1fr)}
+    main{padding:18px 14px 150px}
+  }
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hwrap">
+    <div class="logo">Muuttaa<small>広告トラッカー</small></div>
+    <nav>
+      <button class="nbtn active" id="nb-today" onclick="showTab('today')">今日<span class="dot" id="today-dot"></span></button>
+      <button class="nbtn" id="nb-entry" onclick="showTab('entry')">入力</button>
+      <button class="nbtn" id="nb-dash" onclick="showTab('dash')">分析</button>
+      <button class="nbtn" id="nb-log" onclick="showTab('log')">履歴</button>
+    </nav>
+    <button class="gear" id="gear-btn" onclick="showTab('settings')" title="設定・データ管理">⚙ 設定</button>
+  </div>
+</header>
+
+<main>
+
+<!-- ════════ 今日 ════════ -->
+<div id="tab-today" class="sec visible">
+  <h1 id="today-greet">こんにちは</h1>
+  <div class="sub" id="today-date"></div>
+
+  <div class="todo">
+    <div class="card titem" id="todo-fw" onclick="document.getElementById('q-fw').focus()">
+      <div class="tcheck" id="todo-fw-check">！</div>
+      <div class="ttext"><b>フォロワー数を記録</b><span id="todo-fw-text">—</span></div>
+      <div class="tgo" id="todo-fw-go">入力する ↓</div>
+    </div>
+    <div class="card titem" id="todo-ad" onclick="showTab('entry')">
+      <div class="tcheck" id="todo-ad-check">！</div>
+      <div class="ttext"><b>広告実績を記録</b><span id="todo-ad-text">—</span></div>
+      <div class="tgo" id="todo-ad-go">入力する →</div>
+    </div>
+  </div>
+
+  <div class="card quick">
+    <h2>フォロワー数クイック記録</h2>
+    <div class="qrow">
+      <input type="date" id="q-fw-date" onchange="qFwChanged()">
+      <input type="number" id="q-fw" placeholder="今日のフォロワー数" oninput="qFwChanged()">
+      <span class="qdiff" id="q-fw-diff">—</span>
+      <button class="btn" onclick="saveFw()">保存</button>
+    </div>
+    <div class="qwarn" id="q-fw-warn">⚠ この日付はすでに記録済みです。保存すると上書きされます。</div>
+  </div>
+
+  <div class="glance">
+    <div class="card gcard"><div class="glabel">フォロワー</div><div class="gval" id="gl-fw">—</div><div class="gdelta" id="gl-fw-d">—</div></div>
+    <div class="card gcard"><div class="glabel" id="gl-kpi-label">主要KPI単価（直近7日）</div><div class="gval" id="gl-kpi">—</div><div class="gdelta" id="gl-kpi-d">—</div></div>
+    <div class="card gcard"><div class="glabel">今月の広告費</div><div class="gval" id="gl-spend">—</div><div class="gdelta" id="gl-spend-d">—</div></div>
+  </div>
+</div>
+
+<!-- ════════ 入力 ════════ -->
+<div id="tab-entry" class="sec">
+  <h1>広告実績を記録</h1>
+  <div class="sub">累計値を入力すると、その場で差分と単価が出ます（日時は保存時に自動記録）</div>
+
+  <div class="editbar" id="edit-bar">
+    ✎ <b id="edit-bar-text">記録を編集中</b>（保存すると内容が更新されます）
+    <button onclick="cancelEdit()">キャンセル</button>
+  </div>
+
+  <div class="card form">
+    <div class="frow">
+      <div class="field">
+        <label>クリエイティブ名</label>
+        <input type="text" id="f-creative" placeholder="例：R table – 生活感のある朝" list="cr-dl" oninput="onCreativeChange()">
+        <datalist id="cr-dl"></datalist>
+      </div>
+      <div class="field">
+        <label>ステータス</label>
+        <select id="f-status"><option value="running">配信中</option><option value="paused">停止中</option><option value="ended">終了</option></select>
+      </div>
+    </div>
+    <div class="previnfo" id="f-prev-info">前回記録：—</div>
+
+    <div class="type-switcher">
+      <button class="type-btn sel-follow" id="type-btn-follow" onclick="setAdType('follow')">フォロー獲得型<small>フォロー数・プロフィールアクセスがKPI</small></button>
+      <button class="type-btn" id="type-btn-web" onclick="setAdType('web')">ウェブアクセス型<small>ウェブサイトアクセスがKPI</small></button>
+    </div>
+
+    <div class="numline">
+      <div class="nlabel">広告費（円）<small id="p-spend">初回記録</small></div>
+      <input type="number" id="f-spend" placeholder="12000" oninput="calcAll()">
+      <div class="ndiff" id="d-spend">—<small>差分</small></div>
+    </div>
+    <div class="numline">
+      <div class="nlabel">閲覧数<small id="p-imp">初回記録</small></div>
+      <input type="number" id="f-imp" placeholder="80000" oninput="calcAll()">
+      <div class="ndiff" id="d-imp">—<small>差分</small></div>
+    </div>
+    <div class="numline">
+      <div class="nlabel">リーチ数<small id="p-reach">初回記録</small></div>
+      <input type="number" id="f-reach" placeholder="65000" oninput="calcAll()">
+      <div class="ndiff" id="d-reach">—<small>差分</small></div>
+    </div>
+    <div class="numline">
+      <div class="nlabel">3秒動画再生数<small id="p-v3">初回記録</small></div>
+      <input type="number" id="f-v3" placeholder="28000" oninput="calcAll()">
+      <div class="ndiff" id="d-v3">—<small>差分</small></div>
+    </div>
+    <div class="numline">
+      <div class="nlabel">プロフィールアクセス<small id="p-clicks">初回記録</small></div>
+      <input type="number" id="f-clicks" placeholder="1200" oninput="calcAll()">
+      <div class="ndiff" id="d-clicks">—<small>差分</small></div>
+    </div>
+    <div class="numline">
+      <div class="nlabel">フォロー数<small id="p-follows">初回記録</small></div>
+      <input type="number" id="f-follows" placeholder="80" oninput="calcAll()">
+      <div class="ndiff" id="d-follows">—<small>差分</small></div>
+    </div>
+
+    <div class="web-only" id="web-fields">
+      <div class="slbl">ウェブアクセス型のみ</div>
+      <div class="numline">
+        <div class="nlabel">リンククリック数<small id="p-linkclick">初回記録</small></div>
+        <input type="number" id="f-linkclick" placeholder="400" oninput="calcAll()">
+        <div class="ndiff" id="d-linkclick">—<small>差分</small></div>
+      </div>
+      <div class="numline">
+        <div class="nlabel">ウェブサイトアクセス<small id="p-web">初回記録</small></div>
+        <input type="number" id="f-web" placeholder="300" oninput="calcAll()">
+        <div class="ndiff" id="d-web">—<small>差分</small></div>
+      </div>
+    </div>
+
+    <div class="field" style="margin-top:16px">
+      <label>メモ（任意）</label>
+      <input type="text" id="f-note" placeholder="例：週末向け訴求、白背景ver">
+    </div>
+  </div>
+</div>
+
+<!-- ════════ 分析 ════════ -->
+<div id="tab-dash" class="sec">
+  <h1>分析</h1>
+  <div class="sub" id="dash-range">データなし</div>
+
+  <div class="kpirow">
+    <div class="card hcard"><div class="glabel">フォロワー</div><div class="hval" id="h-fw">—</div><div class="gdelta" id="h-fw-d">—</div></div>
+    <div class="card hcard"><div class="glabel" id="h-kpi-label">フォロー単価（直近30日）</div><div class="hval" style="color:var(--gold)" id="h-kpi">—</div><div class="gdelta" id="h-kpi-d">—</div></div>
+    <div class="card hcard"><div class="glabel">平均CTR（直近30日）</div><div class="hval" id="h-ctr">—</div><div class="gdelta" id="h-ctr-d">基準 3〜5%</div></div>
+  </div>
+
+  <div class="card chartcard">
+    <div class="chips" id="metric-chips">
+      <button class="chip on" data-m="fw" onclick="setMetric('fw')">フォロワー推移</button>
+      <button class="chip" data-m="spend" onclick="setMetric('spend')">広告費と単価</button>
+      <button class="chip" data-m="ctr" onclick="setMetric('ctr')">CTR</button>
+      <button class="chip" data-m="reach" onclick="setMetric('reach')">リーチ</button>
+    </div>
+    <div class="chips">
+      <button class="chip on" data-p="day" onclick="setPeriod('day')">日別</button>
+      <button class="chip" data-p="week" onclick="setPeriod('week')">週別</button>
+      <button class="chip" data-p="month" onclick="setPeriod('month')">月別</button>
+      <span class="chip-sep" id="view-sep"></span>
+      <button class="chip on" data-v="total" onclick="setView('total')">合算</button>
+      <button class="chip" data-v="each" onclick="setView('each')">クリエイティブ別</button>
+      <button class="chip" data-v="single" onclick="setView('single')">個別</button>
+      <select class="cr-select" id="cr-select-dash" onchange="renderDash()"><option value="">クリエイティブを選択</option></select>
+    </div>
+    <div class="chartwrap"><canvas id="chart-main" height="110"></canvas></div>
+  </div>
+
+  <div class="card" style="overflow-x:auto">
+    <div class="toolbar" style="border-radius:10px 10px 0 0">
+      <b style="font-size:13px">クリエイティブ別パフォーマンス</b>
+      <span class="tright" style="font-size:11.5px;color:var(--faint)">評価基準（CTR）: <span class="pill good">Good ≥5%</span> <span class="pill norm">Normal 3〜5%</span> <span class="pill bad">要改善 &lt;3%</span></span>
+    </div>
+    <table class="ctable">
+      <thead><tr><th>クリエイティブ</th><th>タイプ</th><th class="num">記録数</th><th class="num">広告費</th><th class="num">リーチ</th><th class="num">平均CTR</th><th class="num">主要KPI単価</th><th>評価</th></tr></thead>
+      <tbody id="rank-body"><tr><td colspan="8"><div class="empty">データを入力すると表示されます</div></td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════════ 履歴 ════════ -->
+<div id="tab-log" class="sec">
+  <h1>履歴</h1>
+  <div class="sub">行をクリックすると詳細（全指標・累計値）を開閉。編集・削除も詳細から</div>
+
+  <div class="card" style="overflow-x:auto">
+    <div class="toolbar">
+      <button class="ltab active" id="lt-ads" onclick="switchLogTab('ads')">広告実績</button>
+      <button class="ltab" id="lt-fw" onclick="switchLogTab('fw')">フォロワー</button>
+      <div class="tright">
+        <select class="fsel" id="filter-type" onchange="renderLog()">
+          <option value="">全タイプ</option>
+          <option value="follow">フォロー獲得</option>
+          <option value="web">ウェブアクセス</option>
+        </select>
+        <select class="fsel" id="filter-cr" onchange="renderLog()"><option value="">全クリエイティブ</option></select>
+        <button class="mini" onclick="exportCSV()">CSV</button>
+        <button class="mini" onclick="copyToClipboard()">コピー</button>
+      </div>
+    </div>
+    <div id="log-ads">
+      <table class="ctable">
+        <thead><tr><th>日時</th><th>クリエイティブ</th><th class="num">広告費差分</th><th class="num">主要KPI単価</th><th class="num">CTR</th><th></th></tr></thead>
+        <tbody id="log-ads-body"></tbody>
+      </table>
+    </div>
+    <div id="log-fw" style="display:none">
+      <table class="ctable">
+        <thead><tr><th>日付</th><th class="num">フォロワー数</th><th class="num">前回比</th><th></th></tr></thead>
+        <tbody id="log-fw-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ 設定 ════════ -->
+<div id="tab-settings" class="sec">
+  <h1>設定・データ管理</h1>
+  <div class="sub">バックアップと、日常操作から切り離した操作</div>
+  <div class="card settings">
+    <div class="srow">
+      <div class="grow"><b>バックアップをエクスポート</b><span id="last-export-info">最終エクスポート: —</span></div>
+      <button class="mini" onclick="exportData()">Export</button>
+    </div>
+    <div class="srow">
+      <div class="grow"><b>バックアップから復元</b><span>JSONファイルを読み込んで全データを置き換えます</span></div>
+      <button class="mini" onclick="document.getElementById('import-file').click()">Import</button>
+    </div>
+    <div class="srow">
+      <div class="grow"><b>自動バックアップ</b><span id="ab-status">確認中…</span></div>
+      <span id="ab-buttons"></span>
+    </div>
+    <div class="srow">
+      <div class="grow"><b>GitHub同期</b><span id="gh-status">確認中…</span></div>
+      <span id="gh-buttons"></span>
+    </div>
+    <div class="srow" id="gh-token-row" style="display:none">
+      <div class="grow">
+        <input type="password" id="gh-token-input" placeholder="GitHubトークンを貼り付け（github_pat_… / ghp_…）"
+          style="width:100%;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:13px;font-family:var(--num);color:var(--ink);outline:none">
+        <span style="font-size:11px;color:var(--faint)">トークンはこのブラウザの中にだけ保存され、GitHub以外には送信されません</span>
+      </div>
+      <button class="mini" onclick="ghConnect()">接続</button>
+    </div>
+  </div>
+  <div class="danger-zone">
+    <h3>危険な操作</h3>
+    <div class="srow" style="border:none;padding:8px 0">
+      <div class="grow"><b>全データを削除</b><span>広告実績とフォロワー記録をすべて消去します。元に戻せません</span></div>
+      <button class="mini danger" onclick="resetAllData()">削除…</button>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- 入力画面の固定保存バー -->
+<div class="stickybar" id="savebar">
+  <div class="sbwrap">
+    <div class="sbkpi hero"><span id="sb-kpi-label">フォロー単価</span><b id="sb-kpi">—</b></div>
+    <div class="sbkpi">CTR<b id="sb-ctr">—</b></div>
+    <div class="sbkpi">プロフアクセス単価<b id="sb-cpc">—</b></div>
+    <button class="btn ghost" onclick="clearAdForm()">クリア</button>
+    <button class="btn" id="save-btn" onclick="saveAd()">保存する</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="import-file" accept=".json,application/json" style="display:none" onchange="importData(event)">
+
+<script src="chart.umd.min.js"></script>
+<script>
+// ローカルのChart.jsが読めない場合のみCDNにフォールバック
+if(typeof Chart==='undefined') document.write('<script src="https:\/\/cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"><\/script>');
+</script>
+<script>
+// ════════ STORAGE（キーは旧バージョンと互換） ════════
+const KA='muuttaa_ads_v6', KF='muuttaa_fw_v6', KE='muuttaa_last_export';
+let ads=[], followers=[];
+function load(){ try{ads=JSON.parse(localStorage.getItem(KA))||[];}catch{ads=[];} try{followers=JSON.parse(localStorage.getItem(KF))||[];}catch{followers=[];} }
+function persistLocalOnly(ts){ localStorage.setItem(KA,JSON.stringify(ads)); localStorage.setItem(KF,JSON.stringify(followers)); if(ts) localStorage.setItem('muuttaa_last_modified',String(ts)); }
+function persist(){ persistLocalOnly(Date.now()); scheduleAutoBackup(); scheduleGhPush(); }
+
+// ════════ STATE ════════
+let period='day', view='total', metric='fw', adType='follow', curLogTab='ads';
+let editingId=null;
+let expandedId=null;
+let charts={};
+
+// ════════ UTILS ════════
+function pad2(n){ return String(n).padStart(2,'0'); }
+function localDateStr(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function fmtDate(ts){ return localDateStr(new Date(ts)); }
+function todayStr(){ return localDateStr(new Date()); }
+function nowTs(){ return Date.now(); }
+function fmtDt(ts){ return new Date(ts).toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+function fmtDateTime(d){ return `${d.getFullYear()}/${pad2(d.getMonth()+1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
+function fmtFileStamp(d){ return `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}-${pad2(d.getHours())}${pad2(d.getMinutes())}`; }
+function fmtN(v){ return v!=null&&v!==''?Number(v).toLocaleString('ja-JP'):'—'; }
+function fmtPct(v){ return v!=null?Number(v).toFixed(2)+'%':'—'; }
+function getV(id){ const v=document.getElementById(id).value; return v===''?null:v; }
+function avg(arr){ return arr.length?arr.reduce((a,b)=>a+b)/arr.length:null; }
+function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function hexAlpha(hex,a){ const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; }
+
+const PALETTE=['#a8823c','#3f7352','#54709f','#b04a46','#8b6b9f','#4a8f8f','#c4703c','#7a9f4a','#9f6b4a','#6b7fa3'];
+const colorMap={}; let colorIdx=0;
+function getColor(n){ if(!colorMap[n]) colorMap[n]=PALETTE[colorIdx++%PALETTE.length]; return colorMap[n]; }
+
+function periodKey(ts){
+  const d=new Date(ts);
+  if(period==='day') return localDateStr(d);
+  if(period==='month') return localDateStr(d).slice(0,7);
+  const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=t.getUTCDay()||7; t.setUTCDate(t.getUTCDate()+4-day);
+  const y=t.getUTCFullYear(), w=Math.ceil((((t-new Date(Date.UTC(y,0,1)))/86400000)+1)/7);
+  return `${y}-W${String(w).padStart(2,'0')}`;
+}
+function fwPeriodKey(dateStr){ return periodKey(new Date(dateStr+'T12:00:00').getTime()); }
+function periodLabel(k){ return period==='day'?k.slice(5):k; }
+
+// ════════ DIFF BUILD（ロジックは旧バージョンと同一） ════════
+const FIELDS=['spend','imp','reach','v3','clicks','follows','web','linkclick'];
+function buildDiffs(records){
+  const byC={};
+  records.forEach(r=>{ (byC[r.creative]||(byC[r.creative]=[])).push(r); });
+  const result=[];
+  Object.values(byC).forEach(recs=>{
+    const sorted=[...recs].sort((a,b)=>a.ts-b.ts);
+    sorted.forEach((r,i)=>{
+      const prev=sorted[i-1];
+      const diff={};
+      FIELDS.forEach(f=>{
+        const c=r[f]!=null?+r[f]:null, p=prev&&prev[f]!=null?+prev[f]:null;
+        if(c==null){diff[f]=null;return;}
+        if(p==null){diff[f]=c;return;}
+        diff[f]=c-p<0?c:c-p; // マイナス=リセット後の再スタート
+      });
+      const di=diff.imp||0, dc=diff.clicks||0, ds=diff.spend||0,
+            df=diff.follows||0, dw=diff.web||0, dlc=diff.linkclick||0;
+      diff.ctr   =(di&&dc)?dc/di*100:null;
+      diff.cpc   =(ds&&dc)?ds/dc:null;
+      diff.cpf   =(ds&&df)?ds/df:null;
+      diff.cpw   =(ds&&dw)?ds/dw:null;
+      diff.cplc  =(ds&&dlc)?ds/dlc:null;
+      diff.lprate=(dlc&&dw)?dw/dlc*100:null;
+      const isReset=prev&&FIELDS.some(f=>{ const c=r[f]!=null?+r[f]:null,p=prev[f]!=null?+prev[f]:null; return c!=null&&p!=null&&c<p; });
+      // 初回記録は差分に乗せない（ツール導入前の積み上げがあるため）
+      if(!prev){
+        FIELDS.forEach(f=>diff[f]=null);
+        diff.ctr=null; diff.cpc=null; diff.cpf=null; diff.cpw=null; diff.cplc=null; diff.lprate=null;
+      }
+      result.push({...r,diff,isFirst:!prev,isReset});
+    });
+  });
+  return result;
+}
+
+// ════════ タブ ════════
+function showTab(name){
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('visible'));
+  document.getElementById('tab-'+name).classList.add('visible');
+  document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('active'));
+  const nb=document.getElementById('nb-'+name);
+  if(nb) nb.classList.add('active');
+  document.getElementById('gear-btn').classList.toggle('active', name==='settings');
+  document.getElementById('savebar').classList.toggle('on', name==='entry');
+  if(name==='today') renderToday();
+  if(name==='dash') renderDash();
+  if(name==='log') renderLog();
+  if(name==='entry'){ onCreativeChange(); }
+  if(name==='settings') renderSettings();
+  window.scrollTo(0,0);
+}
+
+// ════════ 今日 ════════
+function renderToday(){
+  const now=new Date();
+  const h=now.getHours();
+  document.getElementById('today-greet').textContent=h<11?'おはようございます':h<18?'こんにちは':'こんばんは';
+  document.getElementById('today-date').textContent=now.toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'short'})+' — 今日の記録を済ませましょう';
+
+  // フォロワーのToDo
+  const today=todayStr();
+  const fwToday=followers.find(f=>f.date===today);
+  const fwSorted=[...followers].sort((a,b)=>a.date.localeCompare(b.date));
+  const fwItem=document.getElementById('todo-fw');
+  fwItem.className='card titem '+(fwToday?'done':'pending');
+  document.getElementById('todo-fw-check').textContent=fwToday?'✓':'！';
+  document.getElementById('todo-fw-go').textContent=fwToday?'記録済み':'入力する ↓';
+  if(fwToday){
+    const prev=fwSorted[fwSorted.indexOf(fwToday)-1];
+    const d=prev?fwToday.count-prev.count:null;
+    document.getElementById('todo-fw-text').textContent=`記録済み — ${fwToday.count.toLocaleString()}人${d!=null?`（${d>=0?'+':''}${d.toLocaleString()}）`:''}`;
+  }else{
+    const last=fwSorted[fwSorted.length-1];
+    document.getElementById('todo-fw-text').textContent=last?`前回 ${last.date}（${last.count.toLocaleString()}人）`:'まだ記録がありません';
+  }
+
+  // 広告実績のToDo
+  const adItem=document.getElementById('todo-ad');
+  const todayAds=ads.filter(r=>fmtDate(r.ts)===today);
+  const lastAd=[...ads].sort((a,b)=>a.ts-b.ts).slice(-1)[0];
+  // クリエイティブごとの最新記録が「配信中」の数
+  const latestByCr={};
+  ads.forEach(r=>{ if(!latestByCr[r.creative]||r.ts>latestByCr[r.creative].ts) latestByCr[r.creative]=r; });
+  const runningN=Object.values(latestByCr).filter(r=>r.status==='running').length;
+  adItem.className='card titem '+(todayAds.length?'done':'pending');
+  document.getElementById('todo-ad-check').textContent=todayAds.length?'✓':'！';
+  document.getElementById('todo-ad-go').textContent=todayAds.length?'追加で入力 →':'入力する →';
+  if(todayAds.length){
+    const lastT=new Date(Math.max(...todayAds.map(r=>r.ts)));
+    document.getElementById('todo-ad-text').textContent=`今日 ${todayAds.length}件記録済み — 最終 ${pad2(lastT.getHours())}:${pad2(lastT.getMinutes())}`;
+  }else if(lastAd){
+    const hrs=Math.floor((Date.now()-lastAd.ts)/3600000);
+    document.getElementById('todo-ad-text').textContent=`配信中 ${runningN}件 — 前回記録から${hrs<48?hrs+'時間':Math.floor(hrs/24)+'日'}`;
+  }else{
+    document.getElementById('todo-ad-text').textContent='まだ記録がありません — 最初の記録を入力しましょう';
+  }
+
+  document.getElementById('today-dot').classList.toggle('on', !(fwToday&&todayAds.length));
+
+  // クイック記録の初期値
+  const qd=document.getElementById('q-fw-date');
+  if(!qd.value) qd.value=today;
+  qFwChanged();
+
+  renderGlance();
+  updateGearWarn();
+}
+
+function qFwChanged(){
+  const v=document.getElementById('q-fw').value;
+  const date=document.getElementById('q-fw-date').value;
+  const el=document.getElementById('q-fw-diff');
+  const sorted=[...followers].filter(f=>f.date<date).sort((a,b)=>a.date.localeCompare(b.date));
+  const prev=sorted[sorted.length-1];
+  if(v===''||!prev){ el.textContent=prev?'—':(v===''?'—':'初回'); el.className='qdiff'; }
+  else{
+    const d=Number(v)-prev.count;
+    el.textContent=(d>=0?'+':'')+d.toLocaleString()+'人';
+    el.className='qdiff '+(d>0?'up':d<0?'downc':'flat');
+  }
+  document.getElementById('q-fw-warn').classList.toggle('show', followers.some(f=>f.date===date));
+}
+
+function saveFw(){
+  const date=document.getElementById('q-fw-date').value;
+  const count=document.getElementById('q-fw').value;
+  if(!date){ showToast('日付を入力してください'); return; }
+  if(count===''){ showToast('フォロワー数を入力してください'); return; }
+  const idx=followers.findIndex(f=>f.date===date);
+  if(idx>=0) followers[idx]={date,count:+count}; else followers.push({date,count:+count});
+  followers.sort((a,b)=>a.date.localeCompare(b.date));
+  persist();
+  document.getElementById('q-fw').value='';
+  renderToday();
+  showToast('フォロワー数を保存しました ✓');
+}
+
+function renderGlance(){
+  const fwSorted=[...followers].sort((a,b)=>a.date.localeCompare(b.date));
+  const last=fwSorted[fwSorted.length-1], prev=fwSorted[fwSorted.length-2];
+  document.getElementById('gl-fw').textContent=last?last.count.toLocaleString():'—';
+  const dEl=document.getElementById('gl-fw-d');
+  if(last&&prev){
+    const d=last.count-prev.count;
+    dEl.textContent=(d>=0?'▲ ':'▼ ')+Math.abs(d).toLocaleString()+`（${prev.date===fmtDate(Date.now()-86400000)?'昨日':prev.date}比）`;
+    dEl.className='gdelta '+(d>0?'up':d<0?'downc':'flat');
+  }else{ dEl.textContent='—'; dEl.className='gdelta flat'; }
+
+  // 主要KPI単価（直近7日）
+  const diffed=buildDiffs(ads);
+  const wk=Date.now()-7*86400000;
+  const recent=diffed.filter(r=>r.ts>=wk);
+  const kpi=calcKpiUnit(recent);
+  document.getElementById('gl-kpi-label').textContent=(kpi.label||'主要KPI単価')+'（直近7日）';
+  document.getElementById('gl-kpi').textContent=kpi.value!=null?'¥'+Math.round(kpi.value).toLocaleString():'—';
+  // 前7日と比較
+  const prevRecent=diffed.filter(r=>r.ts>=wk-7*86400000&&r.ts<wk);
+  const pk=calcKpiUnit(prevRecent);
+  const kEl=document.getElementById('gl-kpi-d');
+  if(kpi.value!=null&&pk.value!=null&&pk.label===kpi.label){
+    const d=kpi.value-pk.value;
+    kEl.textContent=(d<=0?'▼ ¥':'▲ ¥')+Math.abs(Math.round(d)).toLocaleString()+(d<=0?' 改善':' 上昇')+'（前7日比）';
+    kEl.className='gdelta '+(d<=0?'up':'downc');
+  }else{ kEl.textContent='単価は低いほど良い'; kEl.className='gdelta flat'; }
+
+  // 今月の広告費
+  const ym=todayStr().slice(0,7);
+  const spendM=diffed.filter(r=>fmtDate(r.ts).slice(0,7)===ym).reduce((s,r)=>s+(r.diff.spend||0),0);
+  const prevYmD=new Date(); prevYmD.setDate(1); prevYmD.setMonth(prevYmD.getMonth()-1);
+  const prevYm=localDateStr(prevYmD).slice(0,7);
+  const spendP=diffed.filter(r=>fmtDate(r.ts).slice(0,7)===prevYm).reduce((s,r)=>s+(r.diff.spend||0),0);
+  document.getElementById('gl-spend').textContent='¥'+spendM.toLocaleString();
+  document.getElementById('gl-spend-d').textContent=spendP?`先月合計 ¥${spendP.toLocaleString()}`:'—';
+}
+
+// 差分レコード群から主要KPI単価（フォロー優先、なければウェブ）を計算
+function calcKpiUnit(recs){
+  const f=recs.filter(r=>r.adType!=='web');
+  const fs=f.reduce((s,r)=>s+(r.diff.spend||0),0), ff=f.reduce((s,r)=>s+(r.diff.follows||0),0);
+  if(fs>0&&ff>0) return {label:'フォロー単価', value:fs/ff};
+  const w=recs.filter(r=>r.adType==='web');
+  const ws=w.reduce((s,r)=>s+(r.diff.spend||0),0), ww=w.reduce((s,r)=>s+(r.diff.web||0),0);
+  if(ws>0&&ww>0) return {label:'ウェブアクセス単価', value:ws/ww};
+  return {label:null, value:null};
+}
+
+// ════════ 入力 ════════
+function setAdType(t){
+  adType=t;
+  document.getElementById('type-btn-follow').className='type-btn'+(t==='follow'?' sel-follow':'');
+  document.getElementById('type-btn-web').className='type-btn'+(t==='web'?' sel-web':'');
+  document.getElementById('web-fields').classList.toggle('show', t==='web');
+  document.getElementById('sb-kpi-label').textContent=t==='web'?'ウェブアクセス単価':'フォロー単価';
+  calcAll();
+}
+
+// creative の ts より前の最新記録（編集時は自分自身を除外）
+function getPrevFor(creative, beforeTs, excludeId){
+  return [...ads]
+    .filter(r=>r.creative===creative && (excludeId==null || r.id!==excludeId) && (beforeTs==null || r.ts<beforeTs))
+    .sort((a,b)=>a.ts-b.ts).slice(-1)[0]||null;
+}
+
+function currentPrev(){
+  const name=document.getElementById('f-creative').value.trim();
+  if(!name) return null;
+  if(editingId!=null){
+    const rec=ads.find(r=>r.id===editingId);
+    return rec?getPrevFor(name, rec.ts, editingId):null;
+  }
+  return getPrevFor(name, null, null);
+}
+
+function onCreativeChange(){
+  const name=document.getElementById('f-creative').value.trim();
+  const prev=currentPrev();
+  const pi=document.getElementById('f-prev-info');
+  if(!name){ pi.innerHTML='前回記録：—'; }
+  else if(!prev){ pi.innerHTML='前回記録：<b>初回記録</b>（このクリエイティブの最初のデータになります）'; }
+  else{
+    const ago=(Date.now()-prev.ts)/3600000;
+    pi.innerHTML=`前回記録：<b>${fmtDt(prev.ts)}</b>（${ago<24?ago.toFixed(1)+'時間前':(ago/24).toFixed(1)+'日前'}）`;
+    if(editingId==null && prev.adType && prev.adType!==adType) setAdType(prev.adType);
+  }
+  calcAll();
+}
+
+function calcAll(){
+  const prev=currentPrev();
+  const cur={}, diff={};
+  FIELDS.forEach(f=>{ const v=getV('f-'+f); cur[f]=v!=null?+v:null; });
+  FIELDS.forEach(f=>{
+    const c=cur[f], p=prev&&prev[f]!=null?+prev[f]:null;
+    if(c==null){diff[f]=null;return;}
+    if(p==null){diff[f]=c;return;}
+    diff[f]=c-p<0?c:c-p;
+  });
+  // 前回累計ラベル
+  const pl=(id,val,yen)=>{ document.getElementById(id).textContent=prev&&val!=null?`前回累計 ${yen?'¥':''}${Number(val).toLocaleString()}`:(prev?'前回累計 —':'初回記録'); };
+  pl('p-spend',prev?.spend,true); pl('p-imp',prev?.imp); pl('p-reach',prev?.reach); pl('p-v3',prev?.v3);
+  pl('p-clicks',prev?.clicks); pl('p-follows',prev?.follows); pl('p-linkclick',prev?.linkclick); pl('p-web',prev?.web);
+  // 差分表示
+  const sd=(id,f,yen)=>{
+    const el=document.getElementById(id);
+    const c=cur[f], p=prev&&prev[f]!=null?+prev[f]:null;
+    const isReset=c!=null&&p!=null&&c<p;
+    const v=diff[f];
+    el.className='ndiff'+(isReset?' reset':'');
+    el.innerHTML=(v!=null?`${isReset?'':'+'}${yen?'¥':''}${Number(v).toLocaleString()}`:'—')+`<small>${isReset?'再スタート':'差分'}</small>`;
+  };
+  sd('d-spend','spend',true); sd('d-imp','imp'); sd('d-reach','reach'); sd('d-v3','v3');
+  sd('d-clicks','clicks'); sd('d-follows','follows'); sd('d-linkclick','linkclick'); sd('d-web','web');
+  // 保存バーのKPI
+  const di=diff.imp||0, dc=diff.clicks||0, ds=diff.spend||0, df=diff.follows||0, dw=diff.web||0;
+  document.getElementById('sb-ctr').textContent=(di&&dc)?(dc/di*100).toFixed(2)+'%':'—';
+  document.getElementById('sb-cpc').textContent=(ds&&dc)?'¥'+(ds/dc).toFixed(1):'—';
+  document.getElementById('sb-kpi').textContent=adType==='web'
+    ? ((ds&&dw)?'¥'+(ds/dw).toFixed(1):'—')
+    : ((ds&&df)?'¥'+Math.round(ds/df).toLocaleString():'—');
+}
+
+function saveAd(){
+  const creative=document.getElementById('f-creative').value.trim();
+  if(!creative){ showToast('クリエイティブ名を入力してください'); return; }
+  if(editingId!=null){
+    const rec=ads.find(r=>r.id===editingId);
+    if(!rec){ cancelEdit(); return; }
+    rec.creative=creative; rec.adType=adType;
+    rec.spend=getV('f-spend'); rec.imp=getV('f-imp'); rec.reach=getV('f-reach');
+    rec.v3=getV('f-v3'); rec.clicks=getV('f-clicks'); rec.follows=getV('f-follows');
+    rec.web=adType==='web'?getV('f-web'):null;
+    rec.linkclick=adType==='web'?getV('f-linkclick'):null;
+    rec.status=getV('f-status'); rec.note=getV('f-note');
+    persist(); updateCreativeLists(); updateFilterOptions();
+    const ts=rec.ts;
+    cancelEdit();
+    showToast(`${fmtDt(ts)} の記録を更新しました ✓`);
+    showTab('log');
+    return;
+  }
+  const ts=nowTs();
+  ads.push({
+    id:ts, ts, creative, adType,
+    spend:getV('f-spend'), imp:getV('f-imp'), reach:getV('f-reach'),
+    v3:getV('f-v3'), clicks:getV('f-clicks'), follows:getV('f-follows'),
+    web:adType==='web'?getV('f-web'):null,
+    linkclick:adType==='web'?getV('f-linkclick'):null,
+    status:getV('f-status'), note:getV('f-note'),
+  });
+  persist(); updateCreativeLists(); updateFilterOptions(); clearAdForm();
+  showToast('記録しました ✓（'+new Date(ts).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})+'）');
+}
+
+function clearAdForm(){
+  ['f-creative','f-spend','f-imp','f-reach','f-v3','f-clicks','f-follows','f-web','f-linkclick','f-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-status').value='running';
+  onCreativeChange();
+}
+
+function startEdit(id){
+  const rec=ads.find(r=>r.id===id);
+  if(!rec) return;
+  editingId=id;
+  document.getElementById('edit-bar').classList.add('on');
+  document.getElementById('edit-bar-text').textContent=`${fmtDt(rec.ts)} の記録（${rec.creative}）を編集中`;
+  document.getElementById('save-btn').textContent='更新する';
+  document.getElementById('f-creative').value=rec.creative;
+  document.getElementById('f-status').value=rec.status||'running';
+  document.getElementById('f-note').value=rec.note||'';
+  ['spend','imp','reach','v3','clicks','follows','web','linkclick'].forEach(f=>{
+    document.getElementById('f-'+f).value=rec[f]??'';
+  });
+  setAdType(rec.adType==='web'?'web':'follow');
+  showTab('entry');
+  onCreativeChange();
+}
+
+function cancelEdit(){
+  editingId=null;
+  document.getElementById('edit-bar').classList.remove('on');
+  document.getElementById('save-btn').textContent='保存する';
+  clearAdForm();
+}
+
+function updateCreativeLists(){
+  const names=[...new Set(ads.map(r=>r.creative))].sort();
+  document.getElementById('cr-dl').innerHTML=names.map(n=>`<option value="${esc(n)}">`).join('');
+  const sel=document.getElementById('cr-select-dash'), cur=sel.value;
+  sel.innerHTML='<option value="">クリエイティブを選択</option>'+names.map(n=>`<option value="${esc(n)}"${n===cur?' selected':''}>${esc(n)}</option>`).join('');
+  names.forEach(n=>getColor(n));
+}
+function updateFilterOptions(){
+  const sel=document.getElementById('filter-cr'), cur=sel.value;
+  const names=[...new Set(ads.map(r=>r.creative))].sort();
+  sel.innerHTML='<option value="">全クリエイティブ</option>'+names.map(n=>`<option value="${esc(n)}"${n===cur?' selected':''}>${esc(n)}</option>`).join('');
+}
+
+// ════════ 履歴 ════════
+function switchLogTab(n){
+  curLogTab=n;
+  document.getElementById('log-ads').style.display=n==='ads'?'block':'none';
+  document.getElementById('log-fw').style.display=n==='fw'?'block':'none';
+  document.getElementById('filter-cr').style.display=n==='ads'?'':'none';
+  document.getElementById('filter-type').style.display=n==='ads'?'':'none';
+  document.getElementById('lt-ads').classList.toggle('active',n==='ads');
+  document.getElementById('lt-fw').classList.toggle('active',n==='fw');
+  renderLog();
+}
+function renderLog(){ curLogTab==='ads'?renderAdsLog():renderFwLog(); }
+
+const ST_MAP={running:'配信中',paused:'停止中',ended:'終了'};
+
+function renderAdsLog(){
+  const typef=document.getElementById('filter-type').value;
+  const crf=document.getElementById('filter-cr').value;
+  const diffed=buildDiffs(ads);
+  const list=diffed.filter(r=>(typef?r.adType===typef:true)&&(crf?r.creative===crf:true)).sort((a,b)=>b.ts-a.ts);
+  const tbody=document.getElementById('log-ads-body');
+  if(!list.length){ tbody.innerHTML='<tr><td colspan="6"><div class="empty">まだ記録がありません</div></td></tr>'; return; }
+  tbody.innerHTML=list.map(r=>{
+    const d=r.diff;
+    const kpiVal=r.adType==='web'
+      ?(d.cpw!=null?'¥'+d.cpw.toFixed(1):'—')
+      :(d.cpf!=null?'¥'+Math.round(d.cpf).toLocaleString():'—');
+    const tag=r.isFirst?' <span class="ttag">初回</span>':r.isReset?' <span class="ttag warn">再スタート</span>':'';
+    const open=expandedId===r.id;
+    const web=r.adType==='web';
+    const cell=(dv,cv,yen)=>`${dv!=null?(yen?'+¥':'+')+Number(dv).toLocaleString():'—'} / ${cv!=null?(yen?'¥':'')+Number(cv).toLocaleString():'—'}`;
+    return `<tr class="lrow" onclick="toggleDetail(${r.id})">
+      <td>${fmtDt(r.ts)}${tag}</td>
+      <td><span class="tname" title="${esc(r.creative)}">${esc(r.creative)}</span> <span class="tbadge ${web?'w':'f'}">${web?'ウェブ':'フォロー'}</span></td>
+      <td class="num">${d.spend!=null?'+¥'+d.spend.toLocaleString():'—'}</td>
+      <td class="num" style="color:var(--gold);font-weight:600">${kpiVal}</td>
+      <td class="num">${fmtPct(d.ctr)}</td>
+      <td class="caret">${open?'▼':'▶'}</td>
+    </tr>
+    <tr class="ldetail${open?' open':''}" id="detail-${r.id}"><td colspan="6">
+      <div class="dgrid">
+        <div>広告費（差分 / 累計）<b>${cell(d.spend,r.spend,true)}</b></div>
+        <div>閲覧数<b>${cell(d.imp,r.imp)}</b></div>
+        <div>リーチ<b>${cell(d.reach,r.reach)}</b></div>
+        <div>3秒再生<b>${cell(d.v3,r.v3)}</b></div>
+        <div>プロフアクセス<b>${cell(d.clicks,r.clicks)}</b></div>
+        <div>フォロー<b>${cell(d.follows,r.follows)}</b></div>
+        ${web?`<div>リンククリック<b>${cell(d.linkclick,r.linkclick)}</b></div>
+        <div>ウェブアクセス<b>${cell(d.web,r.web)}</b></div>
+        <div>リンククリック単価<b>${d.cplc!=null?'¥'+d.cplc.toFixed(1):'—'}</b></div>
+        <div>LP遷移率<b>${d.lprate!=null?d.lprate.toFixed(1)+'%':'—'}</b></div>`:''}
+        <div>プロフアクセス単価<b>${d.cpc!=null?'¥'+d.cpc.toFixed(1):'—'}</b></div>
+        <div>ステータス<b class="jp">${ST_MAP[r.status]||r.status||'—'}</b></div>
+        <div>メモ<b class="jp">${esc(r.note||'—')}</b></div>
+      </div>
+      <div class="dact">
+        <button class="mini" onclick="event.stopPropagation();startEdit(${r.id})">✎ この記録を編集</button>
+        <button class="mini" onclick="event.stopPropagation();toggleAdTypeRec(${r.id})">タイプを${web?'フォロー獲得':'ウェブアクセス'}に変更</button>
+        <button class="mini danger" onclick="event.stopPropagation();deleteAd(${r.id})">削除</button>
+      </div>
+    </td></tr>`;
+  }).join('');
+}
+
+function toggleDetail(id){
+  expandedId=expandedId===id?null:id;
+  renderAdsLog();
+}
+
+function toggleAdTypeRec(id){
+  const rec=ads.find(r=>r.id===id);
+  if(!rec) return;
+  const next=rec.adType==='web'?'follow':'web';
+  const label=next==='web'?'ウェブアクセス型':'フォロー獲得型';
+  if(!confirm(`この記録を「${label}」に変更しますか？`)) return;
+  rec.adType=next;
+  persist(); renderLog();
+  showToast(`タイプを「${label}」に変更しました`);
+}
+
+function renderFwLog(){
+  const list=[...followers].sort((a,b)=>b.date.localeCompare(a.date));
+  const tbody=document.getElementById('log-fw-body');
+  if(!list.length){ tbody.innerHTML='<tr><td colspan="4"><div class="empty">まだ記録がありません</div></td></tr>'; return; }
+  tbody.innerHTML=list.map((f,i)=>{
+    const prev=list[i+1], diff=prev?f.count-prev.count:null;
+    const cls=diff==null?'flat':diff>0?'up':diff<0?'downc':'flat';
+    return `<tr><td>${f.date}</td><td class="num">${Number(f.count).toLocaleString()}</td>
+      <td class="num ${cls}">${diff!=null?(diff>=0?'+':'')+diff.toLocaleString():'初回'}</td>
+      <td><button class="mini danger" onclick="deleteFw('${f.date}')">削除</button></td></tr>`;
+  }).join('');
+}
+
+function deleteAd(id){
+  if(!confirm('この記録を削除しますか？')) return;
+  ads=ads.filter(r=>r.id!==id);
+  if(editingId===id) cancelEdit();
+  persist(); updateFilterOptions(); updateCreativeLists(); renderLog();
+  showToast('削除しました');
+}
+function deleteFw(date){
+  if(!confirm('この記録を削除しますか？')) return;
+  followers=followers.filter(f=>f.date!==date);
+  persist(); renderLog();
+  showToast('削除しました');
+}
+
+// ════════ 分析 ════════
+function setPeriod(p){
+  period=p;
+  document.querySelectorAll('[data-p]').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  renderDash();
+}
+function setView(v){
+  view=v;
+  document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  document.getElementById('cr-select-dash').classList.toggle('show',v==='single');
+  renderDash();
+}
+function setMetric(m){
+  metric=m;
+  document.querySelectorAll('[data-m]').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  // フォロワー推移にはビュー切替が無意味なので隠す
+  const showView=m!=='fw';
+  document.querySelectorAll('[data-v]').forEach(b=>b.style.display=showView?'':'none');
+  document.getElementById('view-sep').style.display=showView?'':'none';
+  document.getElementById('cr-select-dash').classList.toggle('show',showView&&view==='single');
+  renderDash();
+}
+
+function renderDash(){
+  const diffed=buildDiffs(ads);
+
+  // ヒーローKPI（直近30日）
+  const fwSorted=[...followers].sort((a,b)=>a.date.localeCompare(b.date));
+  const last=fwSorted[fwSorted.length-1];
+  document.getElementById('h-fw').textContent=last?last.count.toLocaleString():'—';
+  const cutoffDate=fmtDate(Date.now()-30*86400000);
+  const base=[...fwSorted].filter(f=>f.date<=cutoffDate).slice(-1)[0]||fwSorted[0];
+  const fwdEl=document.getElementById('h-fw-d');
+  if(last&&base&&base!==last){
+    const d=last.count-base.count;
+    fwdEl.textContent=(d>=0?'▲ ':'▼ ')+Math.abs(d).toLocaleString()+`（${base.date} 比）`;
+    fwdEl.className='gdelta '+(d>0?'up':d<0?'downc':'flat');
+  }else{ fwdEl.textContent='—'; fwdEl.className='gdelta flat'; }
+
+  const mo=Date.now()-30*86400000;
+  const recent=diffed.filter(r=>r.ts>=mo);
+  const kpi=calcKpiUnit(recent);
+  document.getElementById('h-kpi-label').textContent=(kpi.label||'主要KPI単価')+'（直近30日）';
+  document.getElementById('h-kpi').textContent=kpi.value!=null?'¥'+Math.round(kpi.value).toLocaleString():'—';
+  document.getElementById('h-kpi-d').textContent='単価は低いほど良い';
+
+  const ctrs=recent.map(r=>r.diff.ctr).filter(v=>v!=null);
+  const ctrAvg=avg(ctrs);
+  const hc=document.getElementById('h-ctr');
+  hc.innerHTML=ctrAvg!=null?ctrAvg.toFixed(2)+'<span class="unit">%</span>':'—';
+  const hcd=document.getElementById('h-ctr-d');
+  if(ctrAvg!=null){
+    hcd.textContent=ctrAvg>=5?'Good（基準5%以上）':ctrAvg>=3?'基準 3〜5% 内':'要改善（基準3%未満）';
+    hcd.className='gdelta '+(ctrAvg>=5?'up':ctrAvg>=3?'flat':'downc');
+  }else{ hcd.textContent='基準 3〜5%'; hcd.className='gdelta flat'; }
+
+  // 期間キー（フォロワー指標のときはフォロワー日付も含める）
+  const grouped={};
+  diffed.forEach(r=>{ const k=periodKey(r.ts); (grouped[k]||(grouped[k]=[])).push(r); });
+  let keys=Object.keys(grouped);
+  if(metric==='fw') keys=[...new Set([...keys,...followers.map(f=>fwPeriodKey(f.date))])];
+  keys.sort();
+  document.getElementById('dash-range').textContent=keys.length?`${keys[0]} — ${keys[keys.length-1]}`:'データなし';
+
+  renderMainChart(grouped,keys,diffed,fwSorted);
+  renderRank(diffed);
+}
+
+function mkChart(type,labels,datasets,extra={}){
+  if(charts.main) charts.main.destroy();
+  const tick=cssVar('--faint'), grid=cssVar('--line'), legend=cssVar('--sub');
+  const opts={
+    responsive:true,
+    spanGaps:true,
+    plugins:{legend:{display:datasets.length>1,labels:{font:{size:11},color:legend}}},
+    scales:{x:{ticks:{font:{size:10},color:tick},grid:{color:grid}},y:{ticks:{font:{size:10},color:tick},grid:{color:grid}},...(extra.scales||{})}
+  };
+  charts.main=new Chart(document.getElementById('chart-main').getContext('2d'),{type,data:{labels,datasets},options:opts});
+}
+
+function renderMainChart(grouped,keys,diffed,fwSorted){
+  const labels=keys.map(periodLabel);
+  const ink=cssVar('--ink'), gold=cssVar('--gold'), blue=cssVar('--blue');
+  const sumByKey=f=>keys.map(k=>(grouped[k]||[]).reduce((s,r)=>s+(r.diff[f]!=null?r.diff[f]:0),0));
+  const avgByKey=f=>keys.map(k=>{ const vs=(grouped[k]||[]).map(r=>r.diff[f]).filter(v=>v!=null); return vs.length?avg(vs):null; });
+  const creatives=[...new Set(diffed.map(r=>r.creative))];
+
+  if(metric==='fw'){
+    const data=keys.map(k=>{
+      const inKey=fwSorted.filter(f=>fwPeriodKey(f.date)===k);
+      return inKey.length?inKey[inKey.length-1].count:null;
+    });
+    mkChart('line',labels,[{label:'フォロワー',data,borderColor:gold,backgroundColor:hexAlpha(gold.startsWith('#')?gold:'#a8823c',0.08),borderWidth:2,pointRadius:3,tension:0.3,fill:true}]);
+    return;
+  }
+
+  const crData=(cr,f)=>keys.map(k=>(grouped[k]||[]).filter(r=>r.creative===cr).reduce((s,r)=>s+(r.diff[f]!=null?r.diff[f]:0),0));
+  const crAvg=(cr,f)=>keys.map(k=>{ const vs=(grouped[k]||[]).filter(r=>r.creative===cr).map(r=>r.diff[f]).filter(v=>v!=null); return vs.length?avg(vs):null; });
+
+  if(metric==='reach'){
+    if(view==='total') mkChart('bar',labels,[{label:'リーチ（差分）',data:sumByKey('reach'),backgroundColor:hexAlpha(ink.startsWith('#')?ink:'#23231e',0.72),borderRadius:2}]);
+    else if(view==='each') mkChart('bar',labels,creatives.map(cr=>({label:cr,data:crData(cr,'reach'),backgroundColor:hexAlpha(getColor(cr),0.72),borderRadius:2})));
+    else{ const cr=document.getElementById('cr-select-dash').value;
+      mkChart('bar',labels,cr?[{label:cr,data:crData(cr,'reach'),backgroundColor:hexAlpha(getColor(cr),0.72),borderRadius:2}]:[{label:'クリエイティブを選択してください',data:[]}]); }
+  }else if(metric==='ctr'){
+    if(view==='total') mkChart('line',labels,[{label:'CTR（%）',data:avgByKey('ctr'),borderColor:ink,borderWidth:2,pointRadius:3,tension:0.3}]);
+    else if(view==='each') mkChart('line',labels,creatives.map(cr=>({label:cr,data:crAvg(cr,'ctr'),borderColor:getColor(cr),borderWidth:2,pointRadius:3,tension:0.3})));
+    else{ const cr=document.getElementById('cr-select-dash').value;
+      mkChart('line',labels,cr?[{label:cr,data:crAvg(cr,'ctr'),borderColor:getColor(cr),borderWidth:2,pointRadius:3,tension:0.3}]:[{label:'クリエイティブを選択してください',data:[]}]); }
+  }else{ // spend
+    if(view==='total'){
+      mkChart('bar',labels,[
+        {label:'広告費（差分）',data:sumByKey('spend'),backgroundColor:hexAlpha(ink.startsWith('#')?ink:'#23231e',0.72),borderRadius:2,yAxisID:'y'},
+        {label:'プロフアクセス単価',data:avgByKey('cpc'),type:'line',borderColor:gold,borderWidth:2,pointRadius:3,tension:0.3,yAxisID:'y1'},
+      ],{scales:{y:{},y1:{position:'right',grid:{drawOnChartArea:false},ticks:{font:{size:10},color:cssVar('--faint')}}}});
+    }else if(view==='each'){
+      mkChart('bar',labels,creatives.map(cr=>({label:cr,data:crData(cr,'spend'),backgroundColor:hexAlpha(getColor(cr),0.72),borderRadius:2})));
+    }else{
+      const cr=document.getElementById('cr-select-dash').value;
+      if(!cr){ mkChart('bar',labels,[{label:'クリエイティブを選択してください',data:[]}]); return; }
+      mkChart('bar',labels,[
+        {label:cr+' 広告費',data:crData(cr,'spend'),backgroundColor:hexAlpha(getColor(cr),0.72),borderRadius:2,yAxisID:'y'},
+        {label:'プロフアクセス単価',data:crAvg(cr,'cpc'),type:'line',borderColor:blue,borderWidth:2,pointRadius:3,tension:0.3,yAxisID:'y1'},
+      ],{scales:{y:{},y1:{position:'right',grid:{drawOnChartArea:false},ticks:{font:{size:10},color:cssVar('--faint')}}}});
+    }
+  }
+}
+
+function renderRank(diffed){
+  const creatives=[...new Set(diffed.map(r=>r.creative))];
+  const tbody=document.getElementById('rank-body');
+  if(!creatives.length){ tbody.innerHTML='<tr><td colspan="8"><div class="empty">データを入力すると表示されます</div></td></tr>'; return; }
+  const rows=creatives.map(c=>{
+    const rs=diffed.filter(r=>r.creative===c);
+    const latest=[...rs].sort((a,b)=>a.ts-b.ts).slice(-1)[0];
+    const type=latest?.adType||'follow';
+    return {c,type,count:rs.length,
+      spend:rs.reduce((s,r)=>s+(r.diff.spend||0),0),
+      reach:rs.reduce((s,r)=>s+(r.diff.reach||0),0),
+      avgCtr:avg(rs.map(r=>r.diff.ctr).filter(v=>v!=null)),
+      avgKpi:type==='web'?avg(rs.map(r=>r.diff.cpw).filter(v=>v!=null)):avg(rs.map(r=>r.diff.cpf).filter(v=>v!=null)),
+    };
+  }).sort((a,b)=>b.spend-a.spend);
+  const badge=ctr=>{
+    if(ctr==null) return '<span class="pill mut">—</span>';
+    if(ctr>=5) return '<span class="pill good">Good</span>';
+    if(ctr>=3) return '<span class="pill norm">Normal</span>';
+    return '<span class="pill bad">要改善</span>';
+  };
+  tbody.innerHTML=rows.map(r=>`<tr>
+    <td class="tname">${esc(r.c)}</td>
+    <td><span class="tbadge ${r.type==='web'?'w':'f'}">${r.type==='web'?'ウェブ':'フォロー'}</span></td>
+    <td class="num">${r.count}</td>
+    <td class="num">¥${r.spend.toLocaleString()}</td>
+    <td class="num">${r.reach.toLocaleString()}</td>
+    <td class="num">${r.avgCtr!=null?r.avgCtr.toFixed(2)+'%':'—'}</td>
+    <td class="num">${r.avgKpi!=null?'¥'+(r.type==='web'?r.avgKpi.toFixed(1):Math.round(r.avgKpi).toLocaleString()):'—'}<br><small style="color:var(--faint);font-size:10px">${r.type==='web'?'ウェブアクセス単価':'フォロー単価'}</small></td>
+    <td>${badge(r.avgCtr)}</td>
+  </tr>`).join('');
+}
+
+// ════════ CSV / コピー ════════
+function exportCSV(){
+  if(curLogTab==='fw'){
+    if(!followers.length){showToast('データがありません');return;}
+    dlCSV([['日付','フォロワー数'],...[...followers].sort((a,b)=>b.date.localeCompare(a.date)).map(f=>[f.date,f.count])],'muuttaa_fw_');
+  } else {
+    if(!ads.length){showToast('データがありません');return;}
+    const diffed=buildDiffs(ads).sort((a,b)=>b.ts-a.ts);
+    const h=['記録日時','タイプ','クリエイティブ','広告費(累計)','閲覧数(累計)','リーチ(累計)','3s再生(累計)','プロフアクセス(累計)','フォロー(累計)','ウェブアクセス(累計)','リンククリック(累計)','広告費(差分)','閲覧数(差分)','リーチ(差分)','3s再生(差分)','プロフアクセス(差分)','フォロー(差分)','ウェブアクセス(差分)','リンククリック(差分)','CTR%','プロフアクセス単価','主要KPI単価','LP遷移率','ステータス','メモ'];
+    dlCSV([h,...diffed.map(r=>{
+      const kpi=r.adType==='web'?(r.diff.cpw!=null?r.diff.cpw.toFixed(1):''):(r.diff.cpf!=null?r.diff.cpf.toFixed(0):'');
+      return[fmtDt(r.ts),r.adType==='web'?'ウェブアクセス':'フォロー獲得',r.creative,r.spend,r.imp,r.reach,r.v3,r.clicks,r.follows,r.web,r.linkclick,r.diff.spend,r.diff.imp,r.diff.reach,r.diff.v3,r.diff.clicks,r.diff.follows,r.diff.web,r.diff.linkclick,r.diff.ctr!=null?r.diff.ctr.toFixed(2):'',r.diff.cpc!=null?r.diff.cpc.toFixed(1):'',kpi,r.diff.lprate!=null?r.diff.lprate.toFixed(1)+'%':'',r.status,r.note||''];
+    })],'muuttaa_ads_');
+  }
+}
+function dlCSV(rows,prefix){
+  const csv=rows.map(r=>r.map(v=>{const s=String(v??'');return s.includes(',')?`"${s}"`:s;}).join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'})); a.download=prefix+todayStr()+'.csv'; a.click(); showToast('CSVをダウンロードしました');
+}
+
+function copyToClipboard(){
+  const typef=document.getElementById('filter-type').value;
+  const crf=document.getElementById('filter-cr').value;
+  const diffed=buildDiffs(ads);
+  const list=diffed
+    .filter(r=>(typef?r.adType===typef:true)&&(crf?r.creative===crf:true))
+    .sort((a,b)=>a.ts-b.ts);
+  if(!list.length){ showToast('コピーするデータがありません'); return; }
+  const n=v=>v!=null?Number(v).toLocaleString('ja-JP'):'—';
+  const p=v=>v!=null?Number(v).toFixed(2)+'%':'—';
+  const yn=v=>v!=null?'¥'+Number(v).toFixed(1):'—';
+  const headers=['記録日時','タイプ','クリエイティブ','広告費(差分)','閲覧数(差分)','リーチ(差分)','3s再生(差分)','プロフアクセス(差分)','フォロー(差分)','ウェブアクセス(差分)','リンククリック(差分)','CTR%','プロフアクセス単価','主要KPI単価','LP遷移率','ステータス','メモ'];
+  const rows=list.map(r=>{
+    const d=r.diff;
+    const kpi=r.adType==='web'?(d.cpw!=null?'¥'+d.cpw.toFixed(1):'—'):(d.cpf!=null?'¥'+d.cpf.toFixed(0):'—');
+    return [fmtDt(r.ts),r.adType==='web'?'ウェブアクセス':'フォロー獲得',r.creative,
+      n(d.spend),n(d.imp),n(d.reach),n(d.v3),n(d.clicks),n(d.follows),n(d.web),n(d.linkclick),
+      p(d.ctr),yn(d.cpc),kpi,d.lprate!=null?d.lprate.toFixed(1)+'%':'—',ST_MAP[r.status]||r.status,r.note||''].join('\t');
+  });
+  navigator.clipboard.writeText([headers.join('\t'),...rows].join('\n')).then(()=>{
+    showToast(`${list.length}件をコピーしました ✓`);
+  }).catch(()=>showToast('コピーに失敗しました'));
+}
+
+// ════════ 設定 / EXPORT / IMPORT ════════
+function renderSettings(){
+  const el=document.getElementById('last-export-info');
+  const ts=localStorage.getItem(KE);
+  if(!ts){ el.textContent='最終エクスポート: なし — バックアップを取っておきましょう'; el.className='warn'; }
+  else{
+    const d=new Date(+ts);
+    const days=Math.floor((Date.now()-(+ts))/86400000);
+    el.textContent=`最終エクスポート: ${fmtDateTime(d)}${days>0?`（${days}日前）`:''}${days>=30?' ⚠ 30日以上空いています':''}`;
+    el.className=days>=30?'warn':'';
+  }
+  renderAbStatus();
+  renderGhStatus();
+  updateGearWarn();
+}
+function updateGearWarn(){
+  // 手動Export・自動バックアップ・GitHub同期のいちばん新しいものを基準に判定
+  const ts=Math.max(+localStorage.getItem(KE)||0, +localStorage.getItem(KAB)||0, +localStorage.getItem('muuttaa_gh_lastsync')||0);
+  const stale=!ts||((Date.now()-ts)/86400000)>=30;
+  const broken=abState==='need-permission'||!!ghError;
+  const g=document.getElementById('gear-btn');
+  g.classList.toggle('warn',stale||broken);
+  g.title=ghError?'GitHub同期でエラーが発生しています — 設定を確認してください'
+    :abState==='need-permission'?'自動バックアップの接続が切れています — 設定から再接続してください'
+    :stale?'バックアップが30日以上空いています — 設定からバックアップ方法を設定してください'
+    :'設定・データ管理';
+}
+
+function exportData(){
+  const payload={
+    schema:'muuttaa-ads-tracker',
+    version:'v6',
+    exportedAt:new Date().toISOString(),
+    data:{ ads:ads, followers:followers }
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`muuttaa-ads-backup-${fmtFileStamp(new Date())}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  localStorage.setItem(KE,String(Date.now()));
+  renderSettings();
+  showToast(`エクスポート完了 (広告${ads.length}件 / フォロワー${followers.length}件)`);
+}
+
+function importData(event){
+  const file=event.target.files[0];
+  event.target.value='';
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    let parsed;
+    try{ parsed=JSON.parse(e.target.result); }
+    catch(err){ showToast('読み込み失敗：JSONファイルとして解析できません'); return; }
+    if(!parsed||!parsed.data||!Array.isArray(parsed.data.ads)||!Array.isArray(parsed.data.followers)){
+      showToast('読み込み失敗：このツールのバックアップファイルではありません'); return;
+    }
+    const newAds=parsed.data.ads, newFw=parsed.data.followers;
+    const exportedAt=parsed.exportedAt?new Date(parsed.exportedAt):null;
+    const stamp=exportedAt?fmtDateTime(exportedAt):'(日時不明)';
+    const msg=`データを読み込みます。よろしいですか？\n\n`
+      +`【読み込むデータ】\n`
+      +`  ・広告データ: ${newAds.length}件\n`
+      +`  ・フォロワーデータ: ${newFw.length}件\n`
+      +`  ・エクスポート日時: ${stamp}\n\n`
+      +`【現在のデータ（上書きされます）】\n`
+      +`  ・広告データ: ${ads.length}件\n`
+      +`  ・フォロワーデータ: ${followers.length}件\n\n`
+      +`※ 現在のデータは完全に置き換えられます。`;
+    if(!confirm(msg)){ showToast('インポートをキャンセルしました'); return; }
+    ads=newAds; followers=newFw;
+    persist();
+    updateCreativeLists(); updateFilterOptions(); renderToday(); renderLog();
+    showToast(`インポート完了 (広告${ads.length}件 / フォロワー${followers.length}件)`);
+  };
+  reader.onerror=()=>showToast('ファイルの読み込みに失敗しました');
+  reader.readAsText(file);
+}
+
+// ════════ 自動バックアップ（File System Access API） ════════
+const KAB='muuttaa_last_autobackup';
+let abHandle=null, abState='unsupported'; // unsupported | off | need-permission | on
+const abSupported=('showDirectoryPicker' in window);
+
+function idbOpen(){ return new Promise((res,rej)=>{ const q=indexedDB.open('muuttaa-ab',1); q.onupgradeneeded=()=>q.result.createObjectStore('kv'); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error); }); }
+async function idbSet(k,v){ const db=await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction('kv','readwrite'); tx.objectStore('kv').put(v,k); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+async function idbGet(k){ const db=await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction('kv','readonly'); const q=tx.objectStore('kv').get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error); }); }
+async function idbDel(k){ const db=await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction('kv','readwrite'); tx.objectStore('kv').delete(k); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+
+async function abInit(){
+  if(!abSupported){ abState='unsupported'; renderAbStatus(); return; }
+  try{ abHandle=await idbGet('dir'); }catch{ abHandle=null; }
+  if(!abHandle){ abState='off'; renderAbStatus(); return; }
+  try{
+    const p=await abHandle.queryPermission({mode:'readwrite'});
+    abState=(p==='granted')?'on':'need-permission';
+  }catch{ abState='need-permission'; }
+  renderAbStatus();
+}
+
+async function abSetup(){
+  try{
+    const h=await window.showDirectoryPicker({mode:'readwrite'});
+    if(await h.requestPermission({mode:'readwrite'})!=='granted'){ showToast('フォルダへの書き込みが許可されませんでした'); return; }
+    abHandle=h;
+    try{ await idbSet('dir',h); }catch{}
+    abState='on';
+    await abWrite();
+    showToast('自動バックアップを設定しました ✓ 以降は保存のたびに自動で書き出します');
+  }catch(e){ /* ユーザーがキャンセル */ }
+  renderAbStatus();
+}
+
+async function abReconnect(){
+  if(!abHandle){ abSetup(); return; }
+  try{
+    if(await abHandle.requestPermission({mode:'readwrite'})==='granted'){
+      abState='on'; await abWrite();
+      showToast('自動バックアップを再開しました ✓');
+    }
+  }catch{}
+  renderAbStatus();
+}
+
+async function abDisable(){
+  abHandle=null; abState='off';
+  try{ await idbDel('dir'); }catch{}
+  renderAbStatus();
+  showToast('自動バックアップを解除しました');
+}
+
+let abTimer=null;
+function scheduleAutoBackup(){
+  if(abState!=='on') return;
+  clearTimeout(abTimer);
+  abTimer=setTimeout(()=>{ abWrite(); }, 1500);
+}
+
+async function abWrite(){
+  if(!abHandle||abState!=='on') return;
+  try{
+    const payload={schema:'muuttaa-ads-tracker',version:'v6',exportedAt:new Date().toISOString(),auto:true,data:{ads:ads,followers:followers}};
+    const name=`muuttaa-ads-auto-${todayStr().replace(/-/g,'')}.json`;
+    const fh=await abHandle.getFileHandle(name,{create:true});
+    const w=await fh.createWritable();
+    await w.write(JSON.stringify(payload,null,2));
+    await w.close();
+    localStorage.setItem(KAB,String(Date.now()));
+    renderAbStatus();
+  }catch(e){
+    abState='need-permission';
+    renderAbStatus();
+  }
+}
+
+function renderAbStatus(){
+  const st=document.getElementById('ab-status'), bt=document.getElementById('ab-buttons');
+  if(!st||!bt) return;
+  if(abState==='unsupported'){
+    st.textContent='このブラウザは非対応です（Chrome / Edge推奨）。手動Exportをご利用ください';
+    st.className=''; bt.innerHTML='';
+  }else if(abState==='off'){
+    st.textContent='未設定 — 保存先フォルダを選ぶと、記録のたびに自動でJSONを書き出します（OneDrive内がおすすめ）';
+    st.className=''; bt.innerHTML='<button class="mini" onclick="abSetup()">フォルダを選択</button>';
+  }else if(abState==='need-permission'){
+    st.textContent='保存先への接続が切れています — 再接続してください';
+    st.className='warn';
+    bt.innerHTML='<button class="mini" onclick="abReconnect()">再接続</button> <button class="mini danger" onclick="abDisable()">解除</button>';
+  }else{
+    const ts=localStorage.getItem(KAB);
+    const last=ts?fmtDateTime(new Date(+ts)):'—';
+    st.textContent=`有効 ✓ 保存先「${abHandle?.name||'—'}」フォルダ — 最終書き出し: ${last}（1日1ファイル、同日は上書き）`;
+    st.className='';
+    bt.innerHTML='<button class="mini danger" onclick="abDisable()">解除</button>';
+  }
+  updateGearWarn();
+}
+
+// ════════ GitHub同期（データは非公開リポジトリの data/ に保存） ════════
+const GH_OWNER='TakashiKatsuhara', GH_REPO='muuttaa-ads-tracker', GH_PATH='data/muuttaa-data.json', GH_BRANCH='main';
+const KGT='muuttaa_gh_token', KGL='muuttaa_gh_lastsync', KLM='muuttaa_last_modified';
+let ghBusy=false, ghError=null, ghTimer=null;
+
+function ghToken(){ try{return localStorage.getItem(KGT)||'';}catch{return '';} }
+
+function b64encodeUtf8(s){
+  const bytes=new TextEncoder().encode(s); let bin=''; const CH=0x8000;
+  for(let i=0;i<bytes.length;i+=CH) bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+CH));
+  return btoa(bin);
+}
+function b64decodeUtf8(b){
+  const bin=atob(String(b).replace(/\s/g,''));
+  const bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+async function ghApi(method, pathSuffix, body){
+  const url=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`+(pathSuffix?`/${pathSuffix}`:'');
+  const res=await fetch(url,{
+    method,
+    headers:{
+      'Authorization':'Bearer '+ghToken(),
+      'Accept':'application/vnd.github+json',
+      'X-GitHub-Api-Version':'2022-11-28',
+      ...(body?{'Content-Type':'application/json'}:{})
+    },
+    body: body?JSON.stringify(body):undefined
+  });
+  if(res.status===404) return {status:404};
+  const data=await res.json().catch(()=>null);
+  if(!res.ok){ const e=new Error('GitHub '+res.status+(data&&data.message?'：'+data.message:'')); e.status=res.status; throw e; }
+  return {status:res.status, data};
+}
+
+async function ghFetchRemote(){
+  const r=await ghApi('GET', `contents/${GH_PATH}?ref=${GH_BRANCH}`);
+  if(r.status===404) return null;
+  let payload=null;
+  try{ payload=JSON.parse(b64decodeUtf8(r.data.content)); }catch{}
+  return {sha:r.data.sha, payload};
+}
+
+function scheduleGhPush(){
+  if(!ghToken()) return;
+  clearTimeout(ghTimer);
+  ghTimer=setTimeout(()=>{ ghPush(); }, 2500);
+}
+
+async function ghPush(){
+  if(!ghToken()) return;
+  if(ghBusy){ scheduleGhPush(); return; }
+  ghBusy=true; ghError=null; renderGhStatus();
+  try{
+    const remote=await ghFetchRemote();
+    const payload={schema:'muuttaa-ads-tracker',version:'v6',exportedAt:new Date().toISOString(),via:'github-sync',data:{ads:ads,followers:followers}};
+    const body={message:'データ自動保存 '+fmtDateTime(new Date()), content:b64encodeUtf8(JSON.stringify(payload,null,2)), branch:GH_BRANCH};
+    if(remote) body.sha=remote.sha;
+    await ghApi('PUT','contents/'+GH_PATH, body);
+    localStorage.setItem(KGL,String(Date.now()));
+  }catch(e){ ghError=e.message; }
+  ghBusy=false;
+  renderGhStatus();
+}
+
+// 起動時：リモートが新しければ取り込み、ローカルが新しければ押し上げ
+async function ghStartupSync(){
+  if(!ghToken()){ renderGhStatus(); return; }
+  try{
+    const remote=await ghFetchRemote();
+    const localEmpty=!ads.length&&!followers.length;
+    if(remote&&remote.payload&&remote.payload.data){
+      const rAds=remote.payload.data.ads||[], rFw=remote.payload.data.followers||[];
+      const rTime=remote.payload.exportedAt?Date.parse(remote.payload.exportedAt)||0:0;
+      const lTime=+localStorage.getItem(KLM)||0;
+      const differs=JSON.stringify({a:rAds,f:rFw})!==JSON.stringify({a:ads,f:followers});
+      if(localEmpty&&(rAds.length||rFw.length)){
+        ads=rAds; followers=rFw; persistLocalOnly(rTime||Date.now());
+        afterRemoteAdopt('GitHubからデータを読み込みました ✓');
+      }else if(!localEmpty&&differs&&rTime>lTime+5000){
+        const msg=`GitHub上に新しいデータがあります。\n\n【GitHub】広告${rAds.length}件 / フォロワー${rFw.length}件（${fmtDateTime(new Date(rTime))} 保存）\n【この端末】広告${ads.length}件 / フォロワー${followers.length}件\n\nこの端末のデータをGitHubの内容に置き換えますか？`;
+        if(confirm(msg)){
+          ads=rAds; followers=rFw; persistLocalOnly(rTime);
+          afterRemoteAdopt('GitHubのデータに更新しました ✓');
+        }
+      }else if(differs&&lTime>rTime){
+        scheduleGhPush();
+      }
+    }else if(!localEmpty){
+      scheduleGhPush(); // リモート未作成 → 初回アップロード
+    }
+  }catch(e){ ghError=e.message; }
+  renderGhStatus();
+}
+
+function afterRemoteAdopt(msg){
+  updateCreativeLists(); updateFilterOptions(); renderToday();
+  showToast(msg);
+}
+
+async function ghConnect(){
+  const inp=document.getElementById('gh-token-input');
+  const t=inp.value.trim();
+  if(!t){ showToast('トークンを入力してください'); return; }
+  localStorage.setItem(KGT,t);
+  inp.value='';
+  showToast('接続を確認しています…');
+  try{
+    await ghApi('GET','');
+    document.getElementById('gh-token-row').style.display='none';
+    await ghStartupSync();
+    if(ads.length||followers.length) await ghPush();
+    showToast('GitHub同期を設定しました ✓');
+  }catch(e){
+    localStorage.removeItem(KGT); ghError=null;
+    showToast('接続できませんでした。トークンの権限（Contents: Read and write）と対象リポジトリを確認してください');
+  }
+  renderGhStatus();
+}
+
+function ghShowTokenRow(){
+  document.getElementById('gh-token-row').style.display='';
+  document.getElementById('gh-token-input').focus();
+}
+
+function ghDisconnect(){
+  if(!confirm('GitHub同期を解除しますか？（GitHub上の保存済みデータはそのまま残ります）')) return;
+  localStorage.removeItem(KGT);
+  ghError=null;
+  renderGhStatus();
+  showToast('GitHub同期を解除しました');
+}
+
+function renderGhStatus(){
+  const st=document.getElementById('gh-status'), bt=document.getElementById('gh-buttons');
+  if(!st||!bt) return;
+  if(!ghToken()){
+    st.textContent='未設定 — 接続すると、保存のたびに非公開リポジトリへ自動保存され、他の端末とも同期できます';
+    st.className='';
+    bt.innerHTML='<button class="mini" onclick="ghShowTokenRow()">設定する</button>';
+  }else if(ghError){
+    st.textContent='エラー：'+ghError;
+    st.className='warn';
+    bt.innerHTML='<button class="mini" onclick="ghPush()">再試行</button> <button class="mini danger" onclick="ghDisconnect()">解除</button>';
+  }else{
+    const ts=localStorage.getItem(KGL);
+    st.textContent=`有効 ✓ 保存のたびに ${GH_REPO}（非公開）へ自動保存 — 最終同期: ${ts?fmtDateTime(new Date(+ts)):'—'}${ghBusy?'（同期中…）':''}`;
+    st.className='';
+    bt.innerHTML='<button class="mini" onclick="ghPush()">今すぐ同期</button> <button class="mini danger" onclick="ghDisconnect()">解除</button>';
+  }
+  updateGearWarn();
+}
+
+function resetAllData(){
+  const ans=prompt('広告データとフォロワーデータをすべて削除します。\nこの操作は元に戻せません。\n\n実行するには「削除」と入力してください：');
+  if(ans!=='削除'){ if(ans!==null) showToast('入力が一致しなかったため中止しました'); return; }
+  localStorage.removeItem(KA); localStorage.removeItem(KF);
+  ads=[]; followers=[];
+  updateCreativeLists(); updateFilterOptions(); renderToday();
+  showToast('すべてのデータを削除しました');
+}
+
+let toastTimer;
+function showToast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2400); }
+
+// ════════ INIT ════════
+load();
+updateCreativeLists();
+updateFilterOptions();
+renderToday();
+abInit();
+ghStartupSync();
+</script>
+</body>
+</html>
